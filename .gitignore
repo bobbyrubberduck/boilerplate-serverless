@@ -1,0 +1,20 @@
+# package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+
+# Webpack directories
+.build
+dist
+
+.env.local.yml
+
+yarn-error.log
+package-error.log
+
+.DS_Store
+
+# Jest directories
+coverage

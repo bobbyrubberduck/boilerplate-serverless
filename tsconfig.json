@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "lib": ["esnext"],
+    "target": "es5",
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": false,
+    "noEmit": false
+  },
+  "exclude": [
+    "**/*.json",
+    "**/*.yml",
+    "bin",
+    "node_modules",
+    "deploy",
+    ".serverless",
+    ".build"
+  ]
+}

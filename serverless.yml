@@ -1,0 +1,143 @@
+service: assignment
+
+frameworkVersion: ^2.52.1
+variablesResolutionMode: 20210326
+configValidationMode: warn
+useDotenv: true
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-step-functions
+  - serverless-localstack
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: ${opt:stage, env:STAGE}
+  region: ${env:AWS_REGION, self:custom.env.AWS_REGION}
+  memorySize: 128
+  timeout: 30
+  environment:
+    NODE_ENV: ${self:custom.env.NODE_ENV}
+    SQS_URL:
+      Ref: TaskQueue
+  deploymentBucket:
+    name: ${self:custom.serverlessDeploymentBucket.${self:provider.stage}}
+    serverSideEncryption: AES256
+    tags:
+      env: ${self:provider.stage}
+      service: ${self:service}
+  apiGateway:
+    apiKeys:
+      - ${self:service}-${self:provider.stage}
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - sqs:SendMessage
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource:
+            - Fn::GetAtt: [TaskQueue, Arn]
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+            - s3:PutBucketAcl
+            - s3:PutObjectAcl
+          Resource:
+            Fn::Join:
+              - ""
+              - [Fn::GetAtt: [TaskBucket, Arn], "/*"]
+  deploymentPrefix: ${self:service}
+  lambdaHashingVersion: 20201221
+
+functions:
+  greeting:
+    name: ${self:service}-${self:provider.stage}-greeting
+    handler: src/functions/greeting/index.handler
+    description: Greeting someone
+    events:
+      - http:
+          method: POST
+          path: greeting
+          private: true
+  shout:
+    name: ${self:service}-${self:provider.stage}-shout
+    handler: src/functions/shout/index.handler
+    description: Shout something
+    events:
+      - http:
+          method: POST
+          path: shout
+          private: true
+  store:
+    name: ${self:service}-${self:provider.stage}-store
+    handler: src/functions/store/index.handler
+    description: Store task
+    environment:
+      TASK_BUCKET: ${self:resources.Resources.TaskBucket.Properties.BucketName}
+      S3_CONF_FORCE_PATH_STYLE: ${self:custom.env.S3_CONF_FORCE_PATH_STYLE,"true"}
+      SSM_VAR: ${ssm:${self:custom.ssmPath}/SSM_VAR}
+      TASK_QUEUE: ${self:resources.Resources.TaskQueue.Properties.QueueName}
+
+stepFunctions:
+  validate: true
+  stateMachines:
+    StateMachine:
+      name: '${self:service}-${self:provider.stage}'
+      definition:
+        StartAt: greeting
+        States:
+          greeting:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [greeting, Arn]
+            Next: shout
+          shout:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [shout, Arn]
+            Next: store
+          store:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [store, Arn]
+            End: true
+
+resources:
+  Resources:
+    TaskQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: TaskQueue-${self:provider.stage}.fifo
+        FifoQueue: true
+        ContentBasedDeduplication: true
+        VisibilityTimeout: 120
+    TaskBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-${self:provider.stage}-task
+        AccessControl: PublicRead
+
+custom:
+  env: ${file(./.env.${self:provider.stage}.yml)}
+  localstack:
+    debug: true
+    stages:
+      - local
+    host: http://localhost
+    endpoints:
+      lambda:
+        mountCode: True
+  namespace: api
+  ssmPath: /${self:custom.namespace}/${self:service}
+  serverless-offline-step-functions:
+    srcPath: ".build"
+    resourcePrefix: ${self:service}-${self:provider.stage}-
+  serverlessDeploymentBucket:
+    dev: serverless-artifacts-${self:provider.stage}
+    staging: im-serverless-artifacts-${self:provider.stage}
+    prod: serverless-artifacts-${self:provider.stage}

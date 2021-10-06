@@ -1,0 +1,78 @@
+{
+  "name": "assignment",
+  "version": "1.0.0",
+  "description": "im-serverless-description",
+  "engines": {
+    "node": "^14"
+  },
+  "scripts": {
+    "init:project": "./bin/init-project.sh",
+    "localstack": "./bin/start-localstack.sh",
+    "localstack:debug": "./bin/start-localstack.sh debug",
+    "deploy:local": "./bin/deploy.local.sh",
+    "deploy:dry-run": "sls deploy --noDeploy",
+    "package": "sls package",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint ./src --ext .js,.ts",
+    "pretty": "prettier --check ./src",
+    "pretty:fix": "prettier --write ./src",
+    "lint:fix": "npm run lint -- --fix",
+    "sls": "serverless"
+  },
+  "keywords": [
+    "serverless",
+    "template"
+  ],
+  "author": "",
+  "license": "MIT",
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint:fix && npm run pretty:fix",
+      "pre-push": "npm test"
+    }
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "roots": [
+      "./src"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 100,
+        "functions": 100,
+        "lines": 100,
+        "statements": 100
+      }
+    },
+    "collectCoverage": true,
+    "coverageReporters": [
+      "json",
+      "html"
+    ]
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.80",
+    "@types/jest": "^26.0.24",
+    "@types/node": "^16.4.1",
+    "@typescript-eslint/eslint-plugin": "^4.28.4",
+    "@typescript-eslint/parser": "^4.28.4",
+    "eslint": "^7.31.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-jest": "^24.4.0",
+    "husky": "^7.0.1",
+    "jest": "^27.0.6",
+    "prettier": "^2.3.2",
+    "serverless": "^2.52.1",
+    "serverless-localstack": "^0.4.32",
+    "serverless-plugin-typescript": "^2.1.0",
+    "serverless-pseudo-parameters": "^2.5.0",
+    "serverless-step-functions": "^2.32.0",
+    "ts-jest": "^27.0.4",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "localstack": "^1.0.0",
+    "update": "^0.4.2"
+  }
+}
